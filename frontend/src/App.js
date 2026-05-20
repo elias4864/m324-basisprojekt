@@ -160,7 +160,7 @@ class App extends React.Component {
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <h1>
-            ToDo Liste
+            M324 ToDo Liste
           </h1>
           <form onSubmit={this.handleSubmit}>
             <input
