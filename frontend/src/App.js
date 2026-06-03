@@ -75,13 +75,18 @@ class App extends React.Component {
   */
   handleSubmit = event => {
     event.preventDefault();
-    console.log("Sending task description to Spring-Server: "+this.state.taskdescription);
+    const taskdescription = this.state.taskdescription;
+    console.log("Sending task description to Spring-Server: "+taskdescription);
+    this.setState({
+      todos: [...this.state.todos, {taskdescription: taskdescription}],
+      taskdescription: ""
+    });
     fetch("http://localhost:8080/tasks", {  // API endpoint (the complete URL!) to save a taskdescription 
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ taskdescription: this.state.taskdescription }) // both 'taskdescription' are identical to Task-Class attribute in Spring
+      body: JSON.stringify({ taskdescription: taskdescription }) // both 'taskdescription' are identical to Task-Class attribute in Spring
     })
     .then(response => {
       console.log("Receiving answer after sending to Spring-Server: ");
@@ -91,10 +96,6 @@ class App extends React.Component {
       // add the new Task to list (temporary solution to show it immedaitely):
       //const newTodos = this.state.todos.slice(); // creates a copy of the current todos state, which returns a shallow copy of the array.
       //newTodos.push({taskdescription: this.state.taskdescription});    // pushes the new task object to the copy of the todos state array using the task.task attribute.
-      this.setState({
-        todos: [...this.state.todos, {taskdescription: this.state.taskdescription}]
-      });          // updates the component state with the new todos array.
-      this.setState({taskdescription: ""});             // clear input field, preparing it for the next input
     })
     .catch(error => console.log(error))
   }
@@ -143,7 +144,8 @@ class App extends React.Component {
       <ul>
         {todos.map((todo, index) => (
           <li key={todo.taskdescription}>
-            {"Task " + (index+1) + ": "+ todo.taskdescription}
+            {"Task " + (index+1) + ": "}
+            <span>{todo.taskdescription}</span>
             <button onClick={this.handleClick.bind(this, todo.taskdescription)}>Done</button>
           </li>
         ))}
@@ -163,12 +165,14 @@ class App extends React.Component {
             M324 ToDo Liste
           </h1>
           <form onSubmit={this.handleSubmit}>
+            <label htmlFor="taskdescription">Neue Aufgabe hinzufügen</label>
             <input
+              id="taskdescription"
               type="text"
               value={this.state.taskdescription}
               onChange={this.handleChange}
             />
-            <button type="submit">Absenden</button>
+            <button type="submit">Hinzufügen</button>
           </form>
           <div>
             {this.renderTasks(this.state.todos)}
