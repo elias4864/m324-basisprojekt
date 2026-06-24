@@ -1,0 +1,87 @@
+name: CI/CD Pipeline - M324 Basisprojekt
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  REGISTRY: ghcr.io
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/todo-frontend
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/todo-backend
+
+jobs:
+  # --- JOB 1: Testen des Frontends ---
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Abhängigkeiten installieren
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Frontend Tests mit Jestframework ausführen
+        run: |
+          cd frontend
+          # CI=true sorgt dafür, dass Jest nach den Tests beendet wird und nicht im Watch-Modus hängen bleibt
+          CI=true npm test
+
+  # --- JOB 2: Build & Push (wird nur ausgeführt, wenn die Tests erfolgreich waren) ---
+  build-and-push:
+    needs: test-frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Bei GitHub Container Registry (GHCR) anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Wird von GitHub automatisch bereitgestellt
+
+      - name: Docker Metadata für Frontend extrahieren
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+
+      - name: Docker Metadata für Backend extrahieren
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE }}
+
+      # --- Frontend Image bauen und pushen ---
+      - name: Frontend Docker Image bauen und pushen
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend  # Pfad zu deinem Frontend-Ordner mit dem Dockerfile
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:latest,${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+
+      # --- Backend Image bauen und pushen ---
+      - name: Backend Docker Image bauen und pushen
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend  # Pfad zu deinem Backend-Ordner mit dem Dockerfile
+          push: true
+          tags: ${{ env.BACKEND_IMAGE }}:latest,${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
