@@ -1,0 +1,44 @@
+name: CI Test Automation
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Job für das Frontend (z.B. React/Vite mit Jest oder Vitest/Playwright)
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' # oder 'yarn' / 'pnpm'
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Frontend Tests ausführen
+        run: npm test -- --watchAll=false # bzw. dein spezifischer Test-Befehl
+
+  # Job für das Backend (z.B. Java/Spring Boot mit JUnit)
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Java einrichten
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17' # Passe deine Java-Version an
+          distribution: 'temurin'
+          cache: 'maven' # oder 'gradle'
+
+      - name: Backend Tests ausführen
+        run: mvn test # oder ./gradlew test
